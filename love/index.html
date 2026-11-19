@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Senga bir gap bor 💌</title>
+<meta name="description" content="Faqat sen uchun 💖">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💖</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--pink:#ff4d8d;--deep:#c2185b;--soft:#ffe3ee;--ink:#4a1030}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{font-family:'Quicksand',sans-serif;color:var(--ink);overflow:hidden;
+    background:linear-gradient(135deg,#ffd6e7 0%,#ffb3cf 40%,#e7a8ff 100%);
+    background-size:300% 300%;animation:bg 14s ease infinite;
+    display:flex;align-items:center;justify-content:center;padding:16px}
+  @keyframes bg{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  .heart{position:fixed;bottom:-40px;pointer-events:none;animation:rise linear forwards;opacity:.8;z-index:0}
+  @keyframes rise{to{transform:translateY(-115vh) rotate(25deg);opacity:0}}
+  .card{position:relative;z-index:2;width:100%;max-width:440px;text-align:center;
+    background:rgba(255,255,255,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.7);border-radius:28px;padding:36px 24px 32px;
+    box-shadow:0 20px 60px rgba(194,24,91,.25)}
+  .step{display:none;animation:fade .7s ease}
+  .step.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .big{font-size:64px;line-height:1;margin-bottom:12px;display:inline-block;animation:beat 1.2s ease-in-out infinite}
+  @keyframes beat{0%,100%{transform:scale(1)}15%{transform:scale(1.18)}30%{transform:scale(1)}45%{transform:scale(1.12)}}
+  h1{font-family:'Dancing Script',cursive;font-size:44px;color:var(--deep);margin-bottom:10px}
+  p{font-size:18px;line-height:1.55;min-height:1.5em}
+  .typed::after{content:'|';animation:blink 1s steps(1) infinite;color:var(--pink)}
+  @keyframes blink{50%{opacity:0}}
+  .btns{margin-top:26px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;min-height:56px}
+  button{font:600 18px 'Quicksand',sans-serif;border:none;border-radius:999px;padding:14px 30px;cursor:pointer;
+    transition:transform .2s, box-shadow .2s}
+  .yes{background:linear-gradient(135deg,var(--pink),var(--deep));color:#fff;box-shadow:0 8px 24px rgba(255,77,141,.45)}
+  .yes:hover{transform:scale(1.06)}
+  .no{background:#fff;color:var(--deep);box-shadow:0 6px 18px rgba(0,0,0,.08)}
+  .no.run{position:fixed;z-index:5;transition:left .25s ease, top .25s ease}
+  .hint{margin-top:14px;font-size:14px;opacity:.7;min-height:1.2em}
+  .reasons{list-style:none;text-align:left;margin:16px auto 0;max-width:330px}
+  .reasons li{padding:9px 0;font-size:17px;opacity:0;transform:translateX(-10px);transition:all .5s}
+  .reasons li.show{opacity:1;transform:none}
+  .final h1{font-size:52px}
+  .sig{font-family:'Dancing Script',cursive;font-size:26px;color:var(--deep);margin-top:18px}
+</style>
+</head>
+<body>
+<main class="card">
+  <!-- 1 -->
+  <section class="step active" id="s1">
+    <div class="big">💌</div>
+    <h1>Salom, <span id="name">Go'zalim</span></h1>
+    <p class="typed" id="t1"></p>
+    <div class="btns"><button class="yes" onclick="go(2)">Ochib ko'r ✨</button></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="s2">
+    <div class="big">🌸</div>
+    <h1>Bilasanmi...</h1>
+    <ul class="reasons" id="reasons">
+      <li>😊 Tabassuming butun kunimni yoritadi</li>
+      <li>✨ Ko'zlaring — yulduzlardan ham chiroyli</li>
+      <li>💬 Sen bilan gaplashish — eng yoqimli lahzam</li>
+      <li>🌙 Uxlashdan oldin ham seni o'ylayman</li>
+      <li>💖 Va... sen menga juda yoqasan</li>
+    </ul>
+    <div class="btns"><button class="yes" onclick="go(3)">Keyin-chi? 🙈</button></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="s3">
+    <div class="big">🥺</div>
+    <h1>Bitta savol...</h1>
+    <p>Men bilan uchrashuvga chiqasanmi? ☕🌹</p>
+    <div class="btns">
+      <button class="yes" id="yes" onclick="yes()">Ha 💖</button>
+      <button class="no" id="no">Yo'q</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step final" id="s4">
+    <div class="big">💞</div>
+    <h1>Yaaay!</h1>
+    <p>Bilardim, rozi bo'lasan deb 🥰<br>Endi menga yozib yubor — qachon va qayerda ko'rishamiz? 😉</p>
+    <div class="sig">— seni o'ylayotgan kishi 💌</div>
+  </section>
+</main>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const nm = q.get('ism') || q.get('name');
+  if (nm) document.getElementById('name').textContent = nm;
+
+  // floating hearts
+  const emojis = ['💖','💕','💗','🌸','💘','✨','🌹'];
+  function heart(){
+    const h = document.createElement('div');
+    h.className = 'heart';
+    h.textContent = emojis[Math.random()*emojis.length|0];
+    h.style.left = Math.random()*100 + 'vw';
+    h.style.fontSize = (16 + Math.random()*24) + 'px';
+    h.style.animationDuration = (6 + Math.random()*6) + 's';
+    document.body.appendChild(h);
+    setTimeout(()=>h.remove(), 12000);
+  }
+  setInterval(heart, 450);
+
+  // typewriter
+  function type(el, text, speed=45){
+    el.textContent=''; let i=0;
+    (function t(){ if(i<text.length){ el.textContent += text[i++]; setTimeout(t, speed);} else el.classList.remove('typed'); })();
+  }
+  type(document.getElementById('t1'), "Senga aytmoqchi bo'lgan bir gapim bor edi... Lekin to'g'ridan-to'g'ri aytishga uyaldim, shuning uchun mana shu saytni qildim 🙈");
+
+  function go(n){
+    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s'+n).classList.add('active');
+    if(n===2){
+      document.querySelectorAll('#reasons li').forEach((li,i)=>setTimeout(()=>li.classList.add('show'), 400 + i*700));
+    }
+  }
+
+  // runaway "no" button
+  const no = document.getElementById('no'), hint = document.getElementById('hint'), yesBtn = document.getElementById('yes');
+  const lines = ["Ishonchingiz komilmi? 🥺","Yana bir o'ylab ko'r 😢","Iltimos... 🙏","Yo'q tugmasi ishlamayapti 😅","Baribir \"Ha\" deysan 😏"];
+  let tries = 0;
+  function dodge(e){
+    if(e) e.preventDefault();
+    const r = no.getBoundingClientRect();
+    if(!no.classList.contains('run')){ no.style.left=r.left+'px'; no.style.top=r.top+'px'; no.classList.add('run'); no.offsetWidth; }
+    const pad = 16;
+    const x = pad + Math.random()*(innerWidth - r.width - pad*2);
+    const y = pad + Math.random()*(innerHeight - r.height - pad*2);
+    no.style.left = x+'px'; no.style.top = y+'px';
+    hint.textContent = lines[Math.min(tries, lines.length-1)];
+    tries++;
+    const s = Math.min(1 + tries*0.12, 1.8);
+    yesBtn.style.transform = `scale(${s})`;
+  }
+  no.addEventListener('mouseenter', dodge);
+  no.addEventListener('touchstart', dodge, {passive:false});
+  no.addEventListener('click', dodge);
+
+  function yes(){
+    no.remove();
+    go(4);
+    for(let i=0;i<60;i++) setTimeout(heart, i*40);
+  }
+</script>
+</body>
+</html>
