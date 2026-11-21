@@ -1,0 +1,5 @@
+# Videos, audio and render intermediates stay local (too large, and the source has GPS data).
+*
+!.gitignore
+!edit.sh
+!finish.sh
