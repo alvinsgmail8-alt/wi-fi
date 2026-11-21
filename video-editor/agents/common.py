@@ -51,3 +51,30 @@ def duration(path: str | Path) -> float:
 
 def has_audio(path: str | Path) -> bool:
     return any(s["codec_type"] == "audio" for s in probe(path)["streams"])
+
+
+def video_stream(path: str | Path) -> dict:
+    return next(s for s in probe(path)["streams"] if s["codec_type"] == "video")
+
+
+def rotation(stream: dict) -> int:
+    for side in stream.get("side_data_list", []):
+        if "rotation" in side:
+            return int(side["rotation"]) % 360
+    return int(stream.get("tags", {}).get("rotate", 0)) % 360
+
+
+def display_size(path: str | Path) -> tuple[int, int]:
+    """Width/height as the video is shown (phones store portrait clips rotated)."""
+    v = video_stream(path)
+    w, h = int(v["width"]), int(v["height"])
+    return (h, w) if rotation(v) in (90, 270) else (w, h)
+
+
+def is_hdr(path: str | Path) -> bool:
+    return video_stream(path).get("color_transfer") in ("arib-std-b67", "smpte2084")
+
+
+# Shared x264 settings for every encode, tuned for social media upload.
+X264 = ["-c:v", "libx264", "-preset", "fast", "-crf", "18", "-profile:v", "high",
+        "-pix_fmt", "yuv420p", "-movflags", "+faststart"]

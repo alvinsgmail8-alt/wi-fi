@@ -3,14 +3,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .common import EditPlan, ffmpeg, has_audio
+from .common import X264, EditPlan, ffmpeg, has_audio
 
 
-def render(src: str | Path, plan: EditPlan, out: str | Path, fade: float = 0.05) -> Path:
+def render(src: str | Path, plan: EditPlan, out: str | Path, video_filters: list[str] | None = None,
+           fade: float = 0.05) -> Path:
     audio = has_audio(src)
+    extra = "," + ",".join(video_filters) if video_filters else ""
     parts, labels = [], []
     for i, s in enumerate(plan.segments):
-        parts.append(f"[0:v]trim={s.start}:{s.end},setpts=PTS-STARTPTS[v{i}]")
+        parts.append(f"[0:v]trim={s.start}:{s.end},setpts=PTS-STARTPTS{extra}[v{i}]")
         labels.append(f"[v{i}]")
         if audio:
             d = s.end - s.start
@@ -25,7 +27,7 @@ def render(src: str | Path, plan: EditPlan, out: str | Path, fade: float = 0.05)
 
     args = ["-i", str(src), "-filter_complex", ";".join(parts), "-map", "[v]"]
     if audio:
-        args += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k"]
-    args += ["-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", str(out)]
+        args += ["-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-ar", "48000"]
+    args += [*X264, str(out)]
     ffmpeg(*args)
     return Path(out)

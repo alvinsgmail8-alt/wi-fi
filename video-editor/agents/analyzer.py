@@ -2,16 +2,22 @@
 from __future__ import annotations
 
 import re
+import tempfile
 from pathlib import Path
 
 from .common import ffmpeg, has_audio, probe
 
 
 def detect_scenes(path: str | Path, threshold: float = 27.0) -> list[tuple[float, float]]:
+    """Find scene cuts on a small 360p proxy: same cuts, much faster on 4K footage."""
     from scenedetect import ContentDetector, detect
 
-    scenes = detect(str(path), ContentDetector(threshold=threshold))
-    return [(s.get_seconds(), e.get_seconds()) for s, e in scenes]
+    with tempfile.TemporaryDirectory() as tmp:
+        proxy = Path(tmp) / "proxy.mp4"
+        ffmpeg("-i", str(path), "-vf", "scale=-2:360,fps=30", "-an", "-c:v", "libx264",
+               "-preset", "ultrafast", "-crf", "28", str(proxy))
+        scenes = detect(str(proxy), ContentDetector(threshold=threshold))
+    return [(round(s.get_seconds(), 3), round(e.get_seconds(), 3)) for s, e in scenes]
 
 
 def detect_silences(path: str | Path, noise_db: int = -35, min_len: float = 0.6) -> list[tuple[float, float]]:

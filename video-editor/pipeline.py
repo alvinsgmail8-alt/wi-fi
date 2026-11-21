@@ -29,7 +29,15 @@ def main() -> None:
     p.add_argument("--stabilize", action="store_true")
     p.add_argument("--color", action="store_true")
     p.add_argument("--vertical", action="store_true", help="9:16 (Reels/Shorts) formatga o'tkazish")
+    p.add_argument("--resolution", type=int, default=1080,
+                   help="Natijaning qisqa tomoni, piksel (0 = asl o'lcham)")
+    p.add_argument("--fps", type=float, default=None, help="Kadr tezligi, masalan 30 (bo'sh = asl)")
+    p.add_argument("--instagram", action="store_true",
+                   help="Instagram Reels uchun tayyor sozlama: 9:16, 1080x1920, rang")
     args = p.parse_args()
+    if args.instagram:
+        args.vertical = args.color = True
+        args.resolution = 1080
 
     src, out = Path(args.input), Path(args.output)
     report_path = out.with_suffix(".report.json")
@@ -47,14 +55,16 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         print("4/7 Cutter...")
-        cut = cutter.render(src, edit, tmp / "cut.mp4")
+        geometry = visual.geometry_filters(src, vertical=args.vertical,
+                                           height=args.resolution or None, fps=args.fps)
+        cut = cutter.render(src, edit, tmp / "cut.mp4", video_filters=geometry)
 
         print("5/7 Audio...")
         mixed = audio.process(cut, tmp / "audio.mp4", denoise=not args.no_denoise,
                               voice_only=args.voice_only, music=args.music)
 
         print("6/7 Visual...")
-        visual.process(mixed, out, stabilize=args.stabilize, color=args.color, vertical=args.vertical)
+        visual.process(mixed, out, stabilize=args.stabilize, color=args.color)
 
     print("7/7 QA...")
     expected = sum(s.end - s.start for s in edit.segments)
