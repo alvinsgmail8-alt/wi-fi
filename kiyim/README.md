@@ -7,7 +7,7 @@ Ertangi ob-havoga qarab, **o'zingizdagi kiyimlardan** libos tanlab beradigan veb
    Dastur rasmdan asosiy rangni avtomatik aniqlaydi, fayl nomidan turini taxmin qiladi
    (`jeans.jpg` → shim, `boots.jpg` → poyabzal). Har bir kiyimni bosib turi, issiqligi (1–5),
    uslubi va suv o'tkazmasligini to'g'rilang.
-2. **Sozlamalar**da shaharni kiriting yoki "📍 Joriy joyim"ni bosing (standart — Toshkent).
+2. Ob-havo faqat **Toshkent** uchun olinadi — hech narsa sozlash shart emas.
 3. **Ertangi libos** bo'limi ertangi prognozni oladi va:
    - ertalabki, kunduzgi va "sezilish" haroratidan, shamoldan samarali haroratni hisoblaydi;
    - har bir qavat (ust, past, kurtka, poyabzal, bosh kiyim, sharf) uchun kerakli issiqlikni aniqlaydi;

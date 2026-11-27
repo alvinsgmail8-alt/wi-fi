@@ -64,7 +64,7 @@ dialog img{width:100%;max-height:260px;object-fit:contain;background:var(--chip)
 <body>
 <header>
   <h1>👕 Ertaga nima kiyaman?</h1>
-  <p>Kiyimlaringiz rasmini joylang — ertangi ob-havoga qarab libos tanlab beraman.</p>
+  <p>Kiyimlaringiz rasmini joylang — Toshkentdagi ertangi ob-havoga qarab libos tanlab beraman.</p>
 </header>
 <nav role="tablist">
   <button role="tab" data-tab="today" aria-selected="true">Ertangi libos</button>
@@ -113,17 +113,6 @@ dialog img{width:100%;max-height:260px;object-fit:contain;background:var(--chip)
 
   <!-- SOZLAMALAR -->
   <section id="tab-settings" class="hidden">
-    <div class="card">
-      <b>Joylashuv</b>
-      <div class="row">
-        <div><label for="city">Shahar</label><input id="city" placeholder="Masalan: Toshkent, Samarqand"></div>
-        <div style="flex:0 0 auto;display:flex;gap:8px">
-          <button id="citySave" class="primary">Saqlash</button>
-          <button id="geo">📍 Joriy joyim</button>
-        </div>
-      </div>
-      <p id="locInfo" class="muted"></p>
-    </div>
     <div class="card">
       <b>Ob-havo manbasi</b>
       <p class="muted">Standart: Open-Meteo (ECMWF, DWD ICON va boshqa milliy modellar), ishlamasa — MET Norway (yr.no). Ikkalasi ham kalitsiz.
@@ -397,7 +386,7 @@ $("#editDlg").addEventListener("close", async ()=>{
 $("#edCat").addEventListener("change", ()=>{ $("#edWarmth").value = CATS[$("#edCat").value].warmth; });
 
 /* ---------- Ob-havo ---------- */
-/* Joylashuvning mahalliy sanasi/soati (shahar vaqt zonasida) */
+/* Toshkent vaqti bo'yicha sana/soat */
 function localParts(date, tz){
   const f = new Intl.DateTimeFormat("en-CA",{timeZone:tz, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", hourCycle:"h23"});
   const o = Object.fromEntries(f.formatToParts(date).map(x=>[x.type,x.value]));
@@ -483,11 +472,10 @@ function owmIdToWmo(id){
   if(id<800) return 45;
   return {800:0, 801:1, 802:2}[id] ?? 3;
 }
+const TASHKENT = {name:"Toshkent", lat:41.2995, lon:69.2401, tz:"Asia/Tashkent"};
 async function loadWeather(){
-  const loc = LS.get("loc", {name:"Toshkent", lat:41.2995, lon:69.2401, tz:"Asia/Tashkent"});
-  const tz = loc.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const loc = TASHKENT, tz = TASHKENT.tz;
   const key = LS.get("owmKey","");
-  $("#locInfo").textContent = "Hozirgi joy: "+loc.name;
   $("#weatherBox").textContent = "Ob-havo yuklanmoqda…";
   // Navbat: foydalanuvchi kaliti bo'lsa — OpenWeatherMap, so'ng Open-Meteo, so'ng MET Norway
   const chain = [...(key? [()=>PROVIDERS.owm(loc,tz,key)] : []), ()=>PROVIDERS.openmeteo(loc), ()=>PROVIDERS.metno(loc,tz)];
@@ -639,21 +627,6 @@ $("#wear").onclick = async ()=>{
 };
 $("#owmSave").onclick = ()=>{ LS.set("owmKey", $("#owmKey").value.trim()); loadWeather(); };
 $("#sens").onchange = ()=>{ LS.set("sens", $("#sens").value); recommend(); };
-async function geocode(q){
-  const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=uz`);
-  const j = await r.json(); if(!j.results?.length) throw new Error("Shahar topilmadi");
-  const g = j.results[0]; return {name: g.name+(g.country? ", "+g.country:""), lat:g.latitude, lon:g.longitude, tz:g.timezone};
-}
-$("#citySave").onclick = async ()=>{
-  const q = $("#city").value.trim(); if(!q) return;
-  try{ LS.set("loc", await geocode(q)); loadWeather(); } catch(e){ alert(e.message); }
-};
-$("#geo").onclick = ()=>{
-  if(!navigator.geolocation) return alert("Brauzer joylashuvni qo'llab-quvvatlamaydi");
-  navigator.geolocation.getCurrentPosition(p=>{
-    LS.set("loc",{name:"Joriy joylashuv", lat:p.coords.latitude, lon:p.coords.longitude}); loadWeather();
-  }, ()=> alert("Joylashuvga ruxsat berilmadi"));
-};
 $("#export").onclick = ()=>{
   const blob = new Blob([JSON.stringify({v:1, items})],{type:"application/json"});
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "garderob.json"; a.click();
