@@ -125,6 +125,15 @@ dialog img{width:100%;max-height:260px;object-fit:contain;background:var(--chip)
       <p id="locInfo" class="muted"></p>
     </div>
     <div class="card">
+      <b>Ob-havo manbasi</b>
+      <p class="muted">Standart: Open-Meteo (ECMWF, DWD ICON va boshqa milliy modellar), ishlamasa — MET Norway (yr.no). Ikkalasi ham kalitsiz.
+      Xohlasangiz <a href="https://home.openweathermap.org/users/sign_up" target="_blank" rel="noopener">openweathermap.org</a> dan bepul API kalit olib shu yerga qo'ying — u birinchi navbatda ishlatiladi. Kalit faqat shu brauzerda saqlanadi.</p>
+      <div class="row">
+        <div><label for="owmKey">OpenWeatherMap API kaliti (ixtiyoriy)</label><input id="owmKey" placeholder="masalan: 3f1a…" autocomplete="off"></div>
+        <div style="flex:0 0 auto"><button id="owmSave" class="primary">Saqlash</button></div>
+      </div>
+    </div>
+    <div class="card">
       <b>Sezgirlik</b>
       <label for="sens">Siz odatda qanday his qilasiz?</label>
       <select id="sens">
@@ -388,29 +397,107 @@ $("#editDlg").addEventListener("close", async ()=>{
 $("#edCat").addEventListener("change", ()=>{ $("#edWarmth").value = CATS[$("#edCat").value].warmth; });
 
 /* ---------- Ob-havo ---------- */
-async function loadWeather(){
-  const loc = LS.get("loc", {name:"Toshkent", lat:41.2995, lon:69.2401});
-  $("#locInfo").textContent = "Hozirgi joy: "+loc.name;
-  $("#weatherBox").textContent = "Ob-havo yuklanmoqda…";
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}`+
-    `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,`+
-    `precipitation_probability_max,precipitation_sum,snowfall_sum,wind_speed_10m_max,uv_index_max`+
-    `&hourly=temperature_2m,precipitation_probability&timezone=auto&forecast_days=2`;
-  try{
-    const r = await fetch(url); if(!r.ok) throw new Error(r.status);
+/* Joylashuvning mahalliy sanasi/soati (shahar vaqt zonasida) */
+function localParts(date, tz){
+  const f = new Intl.DateTimeFormat("en-CA",{timeZone:tz, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", hourCycle:"h23"});
+  const o = Object.fromEntries(f.formatToParts(date).map(x=>[x.type,x.value]));
+  return {date:`${o.year}-${o.month}-${o.day}`, hour:+o.hour};
+}
+function tomorrowStr(tz){ return localParts(new Date(Date.now()+864e5), tz).date; }
+// Soatlik nuqtalardan ertangi kun xulosasi: {t:Date, temp, feels, pop|null, rain, snow, wind(km/s), uv, code(WMO)}
+function summarize(points, tz, loc, source){
+  const day = tomorrowStr(tz);
+  const pts = points.map(p=>({...p, ...localParts(p.t,tz)})).filter(p=>p.date===day);
+  if(pts.length<4) throw new Error("Ertangi kun uchun ma'lumot yetarli emas");
+  const dayPts = pts.filter(p=>p.hour>=7 && p.hour<=21);
+  const arr = k => pts.map(p=>p[k]).filter(v=>v!=null);
+  const morning = pts.reduce((a,b)=> Math.abs(b.hour-8)<Math.abs(a.hour-8)? b : a);
+  const rain = arr("rain").reduce((a,b)=>a+b,0), snow = arr("snow").reduce((a,b)=>a+b,0);
+  const pops = arr("pop");
+  // ehtimollik berilmasa — yog'in miqdoridan taxmin qilamiz
+  const pop = pops.length? Math.max(...pops) : rain+snow>=2? 85 : rain+snow>=0.5? 65 : rain+snow>0.1? 40 : 5;
+  return { loc: loc.name, source, date: day,
+    code: Math.max(...(dayPts.length?dayPts:pts).map(p=>p.code)),
+    tmax: Math.max(...arr("temp")), tmin: Math.min(...arr("temp")),
+    fmax: Math.max(...arr("feels")), fmin: Math.min(...arr("feels")),
+    morning: morning.temp, pop: Math.round(pop), rain, snow,
+    wind: Math.max(...arr("wind")), uv: arr("uv").length? Math.max(...arr("uv")) : 0 };
+}
+// Shamol va namlikni hisobga olgan "sezilish" harorati (taxminiy)
+function feelsLike(t, windKmh){
+  if(t<=10 && windKmh>4.8){ const v=Math.pow(windKmh,0.16); return 13.12+0.6215*t-11.37*v+0.3965*t*v; }
+  return t;
+}
+const PROVIDERS = {
+  async openmeteo(loc){
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}`+
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,`+
+      `precipitation_probability_max,precipitation_sum,snowfall_sum,wind_speed_10m_max,uv_index_max`+
+      `&hourly=temperature_2m&timezone=auto&forecast_days=2`;
+    const r = await fetch(url); if(!r.ok) throw new Error("Open-Meteo: "+r.status);
     const j = await r.json(), d = j.daily, i = 1; // 1 = ertaga
-    // ertalab 8:00 harorati (uydan chiqish vaqti)
-    const morningIdx = j.hourly.time.findIndex(t=>t.startsWith(d.time[i]) && t.endsWith("08:00"));
-    weather = {
-      loc: loc.name, date: d.time[i], code: d.weather_code[i],
+    const mi = j.hourly.time.findIndex(t=>t.startsWith(d.time[i]) && t.endsWith("08:00"));
+    return { loc: loc.name, source:"Open-Meteo", date: d.time[i], code: d.weather_code[i],
       tmax: d.temperature_2m_max[i], tmin: d.temperature_2m_min[i],
       fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i],
-      morning: morningIdx>=0? j.hourly.temperature_2m[morningIdx] : d.temperature_2m_min[i],
+      morning: mi>=0? j.hourly.temperature_2m[mi] : d.temperature_2m_min[i],
       pop: d.precipitation_probability_max[i] ?? 0, rain: d.precipitation_sum[i] ?? 0,
-      snow: d.snowfall_sum[i] ?? 0, wind: d.wind_speed_10m_max[i] ?? 0, uv: d.uv_index_max[i] ?? 0
-    };
-    LS.set("lastWeather", weather);
-  }catch(e){
+      snow: d.snowfall_sum[i] ?? 0, wind: d.wind_speed_10m_max[i] ?? 0, uv: d.uv_index_max[i] ?? 0 };
+  },
+  async metno(loc, tz){
+    const r = await fetch(`https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${(+loc.lat).toFixed(4)}&lon=${(+loc.lon).toFixed(4)}`);
+    if(!r.ok) throw new Error("MET Norway: "+r.status);
+    const j = await r.json();
+    const pts = j.properties.timeseries.filter(x=>x.data.next_1_hours).map(x=>{
+      const d = x.data.instant.details, n = x.data.next_1_hours, sym = n.summary.symbol_code, pr = n.details.precipitation_amount||0;
+      const wind = (d.wind_speed||0)*3.6, snowy = /snow/.test(sym);
+      return { t:new Date(x.time), temp:d.air_temperature, feels: d.apparent_air_temperature ?? feelsLike(d.air_temperature,wind),
+        pop: n.details.probability_of_precipitation ?? null, rain: snowy?0:pr, snow: snowy? pr*0.7 : 0, // sm qor ≈ mm*0.7
+        wind, uv: d.ultraviolet_index_clear_sky ?? null, code: metSymbolToWmo(sym) };
+    });
+    return summarize(pts, tz, loc, "MET Norway (yr.no)");
+  },
+  async owm(loc, tz, key){
+    const r = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${loc.lat}&lon=${loc.lon}&units=metric&appid=${encodeURIComponent(key)}`);
+    if(!r.ok) throw new Error("OpenWeatherMap: "+(r.status===401?"kalit noto'g'ri yoki hali faollashmagan":r.status));
+    const j = await r.json();
+    const pts = j.list.map(x=>({ t:new Date(x.dt*1000), temp:x.main.temp, feels:x.main.feels_like, pop:Math.round((x.pop||0)*100),
+      rain:x.rain?.["3h"]||0, snow:(x.snow?.["3h"]||0)*0.7, wind:(x.wind?.speed||0)*3.6, uv:null, code: owmIdToWmo(x.weather[0].id) }));
+    return summarize(pts, tz, loc, "OpenWeatherMap");
+  }
+};
+function metSymbolToWmo(s){
+  s = s.replace(/_(day|night|polartwilight)$/,"");
+  if(/thunder/.test(s)) return 95;
+  const heavy=/^heavy/.test(s), light=/^light/.test(s), show=/showers/.test(s);
+  if(/sleet/.test(s)) return 66;
+  if(/snow/.test(s)) return show? (heavy?86:85) : heavy?75: light?71:73;
+  if(/rain/.test(s)) return show? (heavy?82: light?80:81) : heavy?65: light?61:63;
+  return {clearsky:0, fair:1, partlycloudy:2, cloudy:3, fog:45}[s] ?? 3;
+}
+function owmIdToWmo(id){
+  if(id<300) return 95; if(id<400) return 53;
+  if(id===511) return 66; if(id>=520 && id<600) return id>=522?82:81;
+  if(id<600) return id===500?61 : id===501?63 : 65;
+  if(id<700) return (id>=611&&id<=616)?66 : id===600?71 : id===601?73 : id>=620?85 : 75;
+  if(id<800) return 45;
+  return {800:0, 801:1, 802:2}[id] ?? 3;
+}
+async function loadWeather(){
+  const loc = LS.get("loc", {name:"Toshkent", lat:41.2995, lon:69.2401, tz:"Asia/Tashkent"});
+  const tz = loc.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const key = LS.get("owmKey","");
+  $("#locInfo").textContent = "Hozirgi joy: "+loc.name;
+  $("#weatherBox").textContent = "Ob-havo yuklanmoqda…";
+  // Navbat: foydalanuvchi kaliti bo'lsa — OpenWeatherMap, so'ng Open-Meteo, so'ng MET Norway
+  const chain = [...(key? [()=>PROVIDERS.owm(loc,tz,key)] : []), ()=>PROVIDERS.openmeteo(loc), ()=>PROVIDERS.metno(loc,tz)];
+  const errors = [];
+  weather = null;
+  for(const fn of chain){
+    try{ weather = await fn(); break; }catch(e){ errors.push(e.message); console.warn(e); }
+  }
+  if(weather){ weather.errors = errors; LS.set("lastWeather", weather); }
+  else{
     weather = LS.get("lastWeather", null);
     if(!weather){ $("#weatherBox").innerHTML = `<span class="warn">Ob-havoni olib bo'lmadi. Internetni tekshiring.</span>`; recommend(); return; }
     weather.stale = true;
@@ -435,6 +522,7 @@ function renderWeather(){
       <span class="chip">💨 ${Math.round(w.wind)} km/s</span>
       <span class="chip">🔆 UV ${Math.round(w.uv)}</span>
     </div>
+    <p class="muted" style="margin:8px 0 0;font-size:.8rem">Manba: ${w.source||"—"}</p>
     ${w.stale? '<p class="warn">Internet yo\'q — oxirgi saqlangan prognoz ko\'rsatilmoqda.</p>':''}`;
 }
 
@@ -549,11 +637,12 @@ $("#wear").onclick = async ()=>{
   for(const it of current){ it.worn = [...(it.worn||[]), Date.now()].slice(-20); await DB.put(it); }
   $("#wear").textContent = "✔ Belgilandi"; setTimeout(()=> $("#wear").textContent="✅ Shuni kiyaman", 1500);
 };
+$("#owmSave").onclick = ()=>{ LS.set("owmKey", $("#owmKey").value.trim()); loadWeather(); };
 $("#sens").onchange = ()=>{ LS.set("sens", $("#sens").value); recommend(); };
 async function geocode(q){
   const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=uz`);
   const j = await r.json(); if(!j.results?.length) throw new Error("Shahar topilmadi");
-  const g = j.results[0]; return {name: g.name+(g.country? ", "+g.country:""), lat:g.latitude, lon:g.longitude};
+  const g = j.results[0]; return {name: g.name+(g.country? ", "+g.country:""), lat:g.latitude, lon:g.longitude, tz:g.timezone};
 }
 $("#citySave").onclick = async ()=>{
   const q = $("#city").value.trim(); if(!q) return;
@@ -587,6 +676,7 @@ $("#importFile").onchange = async e=>{
   for(const [n] of COLORS) $("#edColor").add(new Option(n,n));
   $("#occasion").value = LS.get("occ","casual");
   $("#sens").value = LS.get("sens","0");
+  $("#owmKey").value = LS.get("owmKey","");
   // har kuni boshqa tasodifiy, lekin bir kun ichida barqaror
   seed = Math.floor(Date.now()/864e5);
   try{ items = await DB.all(); }catch{ items = []; }

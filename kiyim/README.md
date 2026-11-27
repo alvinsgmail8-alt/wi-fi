@@ -8,7 +8,7 @@ Ertangi ob-havoga qarab, **o'zingizdagi kiyimlardan** libos tanlab beradigan veb
    (`jeans.jpg` → shim, `boots.jpg` → poyabzal). Har bir kiyimni bosib turi, issiqligi (1–5),
    uslubi va suv o'tkazmasligini to'g'rilang.
 2. **Sozlamalar**da shaharni kiriting yoki "📍 Joriy joyim"ni bosing (standart — Toshkent).
-3. **Ertangi libos** bo'limi ertangi prognozni (Open-Meteo, kalit talab qilinmaydi) oladi va:
+3. **Ertangi libos** bo'limi ertangi prognozni oladi va:
    - ertalabki, kunduzgi va "sezilish" haroratidan, shamoldan samarali haroratni hisoblaydi;
    - har bir qavat (ust, past, kurtka, poyabzal, bosh kiyim, sharf) uchun kerakli issiqlikni aniqlaydi;
    - yomg'ir/qorda suv o'tkazmaydigan kurtka va poyabzalni afzal ko'radi;
@@ -16,6 +16,15 @@ Ertangi ob-havoga qarab, **o'zingizdagi kiyimlardan** libos tanlab beradigan veb
    - yaqinda kiyilgan narsalarni navbatga suradi ("✅ Shuni kiyaman" bosilganda belgilanadi);
    - tadbir turiga (kundalik / rasmiy / sport) mos uslubni tanlaydi.
    "🔄 Boshqa variant" — yangi kombinatsiya.
+
+## Ob-havo manbalari
+Dastur prognozni navbat bilan quyidagi manbalardan oladi — biri ishlamasa, keyingisiga o'tadi:
+1. **OpenWeatherMap** — faqat Sozlamalarda o'z API kalitingizni kiritsangiz
+   ([bepul ro'yxatdan o'tish](https://home.openweathermap.org/users/sign_up); kalit faollashishiga ~1 soat ketishi mumkin).
+2. **Open-Meteo** — kalitsiz; ECMWF, DWD ICON va boshqa milliy ob-havo modellari asosida.
+3. **MET Norway (yr.no)** — kalitsiz zaxira manba.
+
+Qaysi manba ishlatilgani ob-havo kartasi ostida ko'rsatiladi. Internet bo'lmasa, oxirgi saqlangan prognoz chiqadi.
 
 Rasmlar faqat brauzeringizda (IndexedDB) saqlanadi, serverga yuborilmaydi.
 Boshqa qurilmaga o'tkazish uchun Sozlamalar → Eksport/Import.
